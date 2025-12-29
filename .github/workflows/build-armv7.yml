@@ -1,0 +1,28 @@
+name: Build ARMv7 Binary
+
+on:
+  workflow_dispatch: # 允许手动触发编译
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          [cite_start]go-version: '1.23' # ECH 功能必需的版本 
+          check-latest: true
+
+      - name: Build for ARMv7
+        run: |
+          # 设置环境变量以针对 ARMv7 32位进行交叉编译
+          GOOS=linux GOARCH=arm GOARM=7 go build -v -o ech-workers-armv7 ech-workers.go
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ech-workers-armv7
+          path: ech-workers-armv7
