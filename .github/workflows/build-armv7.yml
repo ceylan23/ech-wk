@@ -1,30 +1,59 @@
-name: Build ARMv7 Binary
+name: Build ECH-Workers for ARMv7
 
 on:
   push:
-    branches:
-      - main  # 只要 main 分支有变动就触发
-  workflow_dispatch: # 显式开启手动触发按钮
+    branches: [ main, master ]
+  workflow_dispatch: # 开启手动触发按钮
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          [cite_start]go-version: '1.23' # ECH 功能核心要求 Go 1.23+ 
+          go-version: '1.23' # 核心要求必须 1.23+ 以支持 ECH
+          cache: true
 
-      - name: Build for ARMv7
+      - name: Initialize Go module
         run: |
-          # 交叉编译针对 ARMv7 32位 Armbian 
-          GOOS=linux GOARCH=arm GOARM=7 go build -v -o ech-workers-armv7 ech-workers.go
+          # 模仿原版逻辑，初始化模块并整理依赖
+          go mod init ech-workers || true
+          go mod tidy
+
+      - name: Build Go executable for ARMv7
+        env:
+          GOOS: linux
+          GOARCH: arm
+          GOARM: 7       # 关键：针对 ARMv7 (32位) 硬件优化
+          CGO_ENABLED: 0 # 静态编译，增强兼容性
+        run: |
+          echo "Building for Linux ARMv7..."
+          # 模仿原版的编译参数：-trimpath 移除路径信息，-s -w 压缩体积
+          go build -trimpath -ldflags="-s -w" -o ech-workers-armv7 ech-workers.go
+
+      - name: Download China IP list
+        run: |
+          # 模仿原版逻辑，下载分流所需的 IP 列表
+          echo "Downloading latest China IP list..."
+          curl -L -o chn_ip.txt "https://raw.githubusercontent.com/mayaxcn/china-ip-list/refs/heads/master/chn_ip.txt"
+          curl -L -o chn_ip_v6.txt "https://raw.githubusercontent.com/mayaxcn/china-ip-list/refs/heads/master/chn_ip_v6.txt"
+
+      - name: Prepare Artifacts
+        run: |
+          mkdir -p release
+          cp ech-workers-armv7 release/
+          cp chn_ip.txt release/
+          cp chn_ip_v6.txt release/
+          # 生成一个简单的说明文件
+          echo "Architecture: ARMv7 (32-bit Linux)" > release/info.txt
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ech-workers-armv7
-          path: ech-workers-armv7
+          name: ECHWorkers-Armbian-armv7
+          path: release/
