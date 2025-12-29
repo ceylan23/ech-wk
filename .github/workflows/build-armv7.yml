@@ -1,7 +1,7 @@
 name: Build ARMv7 Binary
 
 on:
-  workflow_dispatch: # 允许手动触发编译
+  workflow_dispatch: # 允许手动触发
 
 jobs:
   build:
@@ -13,12 +13,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          [cite_start]go-version: '1.23' # ECH 功能必需的版本 
-          check-latest: true
+          [cite_start]go-version: '1.23' # ECH 功能必需 Go 1.23+ 
 
       - name: Build for ARMv7
         run: |
-          # 设置环境变量以针对 ARMv7 32位进行交叉编译
+          # GOARM=7 针对 ARMv7 32位架构进行优化
+          # 核心文件名必须与仓库中的 ech-workers.go 一致 
           GOOS=linux GOARCH=arm GOARM=7 go build -v -o ech-workers-armv7 ech-workers.go
 
       - name: Upload Artifact
